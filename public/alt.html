@@ -1,0 +1,77 @@
+<html>
+  <head>
+    <script src="https://apis.google.com/js/client.js"></script>
+    <script>
+      /**
+      * Get Attachments from a given Message.
+      *
+      * @param  {String} userId User's email address. The special value 'me'
+      * can be used to indicate the authenticated user.
+      * @param  {String} messageId ID of Message with attachments.
+      * @param  {Function} callback Function to call when the request is complete.
+      */
+      function getAttachments(userId, message, callback) {
+        var parts = message.payload.parts;
+        for (var i = 0; i < parts.length; i++) {
+          var part = parts[i];
+          if (part.filename && part.filename.length > 0) {
+            var attachId = part.body.attachmentId;
+            var request = gapi.client.gmail.users.messages.attachments.get({
+              'id': attachId,
+              'messageId': message.id,
+              'userId': userId
+            });
+            request.execute(function(attachment) {
+              callback(part.filename, part.mimeType, attachment);
+            });
+          }
+        }
+      }
+
+      function listMessages(userId, query, callback) {
+        var getPageOfMessages = function(request, result) {
+          request.execute(function(resp) {
+            result = result.concat(resp.messages);
+            var nextPageToken = resp.nextPageToken;
+            if (nextPageToken) {
+              request = gapi.client.gmail.users.messages.list({
+                'userId': userId,
+                'pageToken': nextPageToken,
+                'q': query
+              });
+              getPageOfMessages(request, result);
+            } else {
+              callback(result);
+            }
+          });
+        };
+        var initialRequest = gapi.client.gmail.users.messages.list({
+          'userId': userId,
+          'q': query
+        });
+        getPageOfMessages(initialRequest, []);
+      }
+
+      function auth() {
+        var config = {
+          'client_id': '247703114001-qrcq0o5v89tts8cjsjbgd9fba5128c7s.apps.googleusercontent.com',
+          'scope': 'https://www.googleapis.com/auth/gmail.readonly'
+        };
+        gapi.auth.authorize(config, function() {
+          console.log('login complete');
+          var token = gapi.auth.getToken();
+          console.log(token);
+
+          // get list of emails
+          // get the first email from the list
+          // get the first attachment from the email
+
+        });
+      }
+    </script>
+  </head>
+
+  <body>
+    <button onclick="auth();">Authorize</button>
+  </body>
+</html>
